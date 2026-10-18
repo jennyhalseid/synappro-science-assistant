@@ -1,0 +1,19 @@
+# Environment — never commit your API key
+.env
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# NOTE: data/chunks.json and data/embeddings.npy ARE committed intentionally.
+# They are required for the app to run on Railway/Render without re-running the pipeline.

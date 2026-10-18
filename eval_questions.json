@@ -1,0 +1,42 @@
+[
+  {
+    "question": "Does diaphragmatic breathing reduce stress hormones like cortisol?",
+    "expected_sources": ["Hopper et al., 2019.pdf"],
+    "expected_chunk_ids": [
+      "Hopper et al., 2019_p2_c1",
+      "Hopper et al., 2019_p8_c0",
+      "Hopper et al., 2019_p21_c1"
+    ]
+  },
+  {
+    "question": "Can 4-7-8 breathing lower heart rate and blood pressure?",
+    "expected_sources": ["Vierra et al., 2022.pdf"],
+    "expected_chunk_ids": [
+      "Vierra et al., 2022_p1_c2"
+    ]
+  },
+  {
+    "question": "Which breathing exercise did students practise most in their own time?",
+    "expected_sources": ["Nielsen et al., 2023.pdf"],
+    "expected_chunk_ids": [
+      "Nielsen et al., 2023_p1_c2",
+      "Nielsen et al., 2023_p6_c1",
+      "Nielsen et al., 2023_p6_c2"
+    ]
+  },
+  {
+    "question": "What does a breathwork and cold exposure training protocol look like?",
+    "expected_sources": ["Kox et al., 2014.pdf"],
+    "expected_chunk_ids": [
+      "Kox et al., 2014_p1_c1"
+    ]
+  },
+  {
+    "question": "How does slow breathing affect heart rate variability?",
+    "expected_sources": ["Russo et al., 2017.pdf"],
+    "expected_chunk_ids": [
+      "Russo et al., 2017_p1_c0",
+      "Russo et al., 2017_p8_c4"
+    ]
+  }
+]

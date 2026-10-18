@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>synappro - science assistant</title>
+    <!-- Set theme before paint to avoid flash -->
+    <script>document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "light");</script>
+    <style>
+        /* ── Design tokens ── */
+        :root {
+            --bg:        #F5F6F9;
+            --card-bg:   white;
+            --text:      #39393A;
+            --accent:    #C54943;
+            --secondary: #FFC247;
+            --border:    #e4e4e4;
+            --radius:    10px;
+            --font:      "Arial Rounded MT Bold", Arial, sans-serif;
+            --sidebar-w: 290px;
+        }
+
+        [data-theme="dark"] {
+            --bg:        #1a1a1a;
+            --card-bg:   #242424;
+            --text:      #e2e2e2;
+            --border:    #3e3e3e;
+            --secondary: #FFC247;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            min-height: 100vh;
+            display: flex;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        /* ── Sidebar ── */
+        #sidebar {
+            width: var(--sidebar-w);
+            background: var(--card-bg);
+            border-right: 2px solid var(--bg);
+            position: fixed;
+            top: 0; left: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(-100%);
+            transition: transform 0.28s ease;
+            z-index: 200;
+        }
+
+        #sidebar.open { transform: translateX(0); }
+
+        #sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.18);
+            z-index: 199;
+        }
+
+        #sidebar-overlay.open { display: block; }
+
+        .sidebar-header {
+            padding: 18px 20px;
+            border-bottom: 2px solid var(--bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h2 {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            opacity: 0.45;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            padding: 4px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+        .icon-btn:hover { background: var(--bg); }
+
+        #history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .history-empty {
+            font-size: 0.82rem;
+            opacity: 0.4;
+            padding: 12px;
+        }
+
+        .history-item {
+            width: 100%;
+            background: none;
+            border: none;
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            text-align: left;
+            cursor: pointer;
+            font-family: var(--font);
+            color: var(--text);
+            margin-bottom: 4px;
+            transition: background 0.15s;
+        }
+
+        .history-item:hover { background: var(--bg); }
+
+        .history-item .h-q {
+            font-size: 0.83rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .history-item .h-time {
+            font-size: 0.72rem;
+            opacity: 0.38;
+            margin-top: 3px;
+        }
+
+        /* ── Papers section (pinned bottom of sidebar) ── */
+        #papers-section {
+            border-top: 2px solid var(--bg);
+            flex-shrink: 0;
+        }
+
+        .papers-header {
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .papers-header:hover { opacity: 0.75; }
+
+        .papers-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .papers-header-left span {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            opacity: 0.45;
+        }
+
+        .papers-count-badge {
+            font-size: 0.7rem;
+            background: var(--bg);
+            border-radius: 20px;
+            padding: 2px 8px;
+            opacity: 0.6;
+        }
+
+        .papers-chevron {
+            opacity: 0.35;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        #papers-section.open .papers-chevron { transform: rotate(180deg); }
+
+        #papers-list {
+            display: none;
+            padding: 0 10px 12px;
+            max-height: 210px;
+            overflow-y: auto;
+        }
+
+        #papers-section.open #papers-list { display: block; }
+
+
+        .paper-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            font-size: 0.82rem;
+            color: var(--text);
+            text-decoration: none;
+            transition: background 0.15s;
+            font-family: var(--font);
+        }
+
+        .paper-item:hover { background: var(--bg); }
+
+        .paper-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .paper-chunks {
+            font-size: 0.7rem;
+            opacity: 0.42;
+            flex-shrink: 0;
+        }
+
+        /* ── Main ── */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ── Top bar ── */
+        #topbar {
+            background: var(--card-bg);
+            border-bottom: 2px solid var(--bg);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        #topbar h1 {
+            font-size: 1.05rem;
+            color: var(--accent);
+            flex: 1;
+        }
+
+        /* ── Input section ── */
+        #input-wrap {
+            padding: 24px 24px 0;
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .input-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            box-shadow: 0 2px 14px rgba(0,0,0,0.06);
+        }
+
+        label {
+            display: block;
+            font-size: 0.88rem;
+            opacity: 0.65;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 88px;
+            padding: 12px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-family: var(--font);
+            font-size: 0.95rem;
+            color: var(--text);
+            background: var(--bg);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus { border-color: var(--accent); }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        .hint { font-size: 0.75rem; opacity: 0.38; }
+
+        #ask-btn {
+            padding: 10px 26px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-family: var(--font);
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        #ask-btn:hover    { opacity: 0.85; }
+        #ask-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+
+        .status { margin-top: 10px; font-size: 0.88rem; }
+        #loading { display: none; opacity: 0.52; }
+        #error   { display: none; color: var(--accent); }
+
+        /* ── Feed ── */
+        #feed {
+            padding: 20px 24px 60px;
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* ── Answer card ── */
+        .answer-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: 0 2px 14px rgba(0,0,0,0.06);
+        }
+
+        /* ── Card header: question + confidence badge ── */
+        .card-header {
+            background: var(--bg);
+            border-bottom: 2px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        /* ── Confidence info button + tooltip ── */
+        .conf-info {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .conf-info-btn {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1.5px solid currentColor;
+            background: none;
+            cursor: pointer;
+            font-size: 0.62rem;
+            color: var(--text);
+            opacity: 0.32;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: opacity 0.15s;
+            font-family: Georgia, serif;
+            font-style: italic;
+        }
+
+        .conf-info:hover .conf-info-btn { opacity: 0.75; }
+
+        .conf-tooltip {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--card-bg);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            width: 272px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.13);
+            z-index: 50;
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+        }
+
+        .conf-info:hover .conf-tooltip { display: block; }
+
+        .conf-tooltip-intro {
+            font-size: 0.78rem;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .conf-tooltip-levels { display: flex; flex-direction: column; gap: 7px; }
+
+        .conf-tooltip-row { display: flex; align-items: baseline; gap: 8px; }
+
+        .conf-tooltip-row .tl-badge {
+            font-size: 0.68rem;
+            padding: 1px 8px;
+            border-radius: 20px;
+            flex-shrink: 0;
+            width: 58px;
+            text-align: center;
+        }
+
+        .conf-tooltip-row .tl-score {
+            font-size: 0.69rem;
+            font-family: monospace;
+            opacity: 0.55;
+            flex-shrink: 0;
+            width: 64px;
+        }
+
+        .conf-tooltip-row .tl-desc {
+            font-size: 0.74rem;
+            opacity: 0.72;
+        }
+
+        .card-question {
+            font-size: 0.88rem;
+            opacity: 0.72;
+            flex: 1;
+        }
+
+        /* ── Confidence badge ── */
+        .conf-badge {
+            padding: 3px 11px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .conf-high { background: #d4edda; color: #155724; }
+        .conf-med  { background: #fff3cd; color: #856404; }
+        .conf-low  { background: #f8d7da; color: #721c24; }
+
+        [data-theme="dark"] .conf-high { background: #1a3a1a; color: #6fcf97; }
+        [data-theme="dark"] .conf-med  { background: #3a2e00; color: #ffc247; }
+        [data-theme="dark"] .conf-low  { background: #3a1a1a; color: #eb5757; }
+
+        /* ── Low-confidence warning banner ── */
+        .low-conf-banner {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 0.82rem;
+            font-family: Arial, sans-serif;
+            color: #7a5800;
+            margin-bottom: 14px;
+        }
+
+        [data-theme="dark"] .low-conf-banner { background: #2e2200; border-color: #5a4400; color: #ffd966; }
+
+        .card-body { padding: 20px; }
+
+        /* ── Icon buttons inside card header (copy / markdown) ── */
+        .card-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            opacity: 0.38;
+            padding: 3px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            transition: opacity 0.15s, background 0.15s;
+        }
+
+        .card-icon-btn:hover { opacity: 1; background: rgba(0,0,0,0.07); }
+        [data-theme="dark"] .card-icon-btn:hover { background: rgba(255,255,255,0.09); }
+        [data-theme="dark"] #topbar h1 { color: #C54943; }
+
+        .answer-text {
+            font-family: Arial, sans-serif;
+            font-size: 0.93rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        /* ── Keyword highlight in RAG snippets ── */
+        mark {
+            background: rgba(255, 194, 71, 0.45);
+            color: inherit;
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+
+        [data-theme="dark"] mark { background: rgba(255, 194, 71, 0.22); }
+
+        /* ── Duplicate-source notice (lives inside RAG panel) ── */
+        .dupe-notice {
+            font-size: 0.77rem;
+            font-family: Arial, sans-serif;
+            color: #856404;
+            background: #fff3cd;
+            border-radius: 6px;
+            padding: 5px 12px;
+            margin-bottom: 12px;
+        }
+
+        [data-theme="dark"] .dupe-notice { background: #2e2200; color: #ffc247; }
+
+        [data-theme="dark"] .source-badge { color: #1a1a1a; }
+
+        /* ── Dark mode opacity boosts (light-mode reductions drop below AA on dark bg) ── */
+        [data-theme="dark"] label             { opacity: 0.85; }
+        [data-theme="dark"] .hint             { opacity: 0.58; }
+        [data-theme="dark"] .card-question    { opacity: 0.88; }
+        [data-theme="dark"] .history-empty    { opacity: 0.6; }
+        [data-theme="dark"] .h-time           { opacity: 0.58; }
+        [data-theme="dark"] .rag-panel-title  { opacity: 0.62; }
+        [data-theme="dark"] .chunk-snippet    { opacity: 0.75; }
+        [data-theme="dark"] .stats-bar        { opacity: 0.65; }
+
+        /* ── Source badges ── */
+        .sources-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 16px;
+        }
+
+        .source-badge {
+            background: var(--secondary);
+            color: var(--text);
+            border-radius: var(--radius);
+            padding: 5px 12px;
+            font-size: 0.78rem;
+        }
+
+        /* ── Stats bar ── */
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            font-size: 0.72rem;
+            font-family: Arial, sans-serif;
+            opacity: 0.45;
+        }
+
+        /* ── RAG toggle button ── */
+        .rag-toggle {
+            margin-top: 14px;
+            background: none;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 7px 14px;
+            font-family: var(--font);
+            font-size: 0.78rem;
+            color: var(--text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .rag-toggle:hover        { border-color: var(--accent); background: var(--bg); }
+        .rag-toggle.open         { border-color: var(--accent); }
+
+        .plus-icon {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--accent);
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+
+        .rag-toggle.open .plus-icon { transform: rotate(45deg); }
+
+        /* ── RAG panel ── */
+        .rag-panel {
+            display: none;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 2px solid var(--bg);
+        }
+
+        .rag-panel.open { display: block; }
+
+        .rag-panel-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            opacity: 0.4;
+            margin-bottom: 12px;
+        }
+
+        /* ── Chunk rows ── */
+        .chunk-row {
+            background: var(--bg);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            margin-bottom: 8px;
+        }
+
+        .chunk-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chunk-rank {
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 0.72rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .chunk-source { font-size: 0.82rem; flex: 1; min-width: 120px; }
+
+        .score-pill {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+        }
+
+        .score-bar-track {
+            height: 5px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .score-bar-fill { height: 100%; border-radius: 10px; }
+
+        .chunk-snippet {
+            font-size: 0.79rem;
+            font-family: Arial, sans-serif;
+            line-height: 1.55;
+            opacity: 0.55;
+        }
+
+        /* ── Print / PDF export ── */
+        @media print {
+            #sidebar, #sidebar-overlay, #topbar, #input-wrap,
+            .rag-toggle, .rag-panel, .answer-actions, .stats-bar { display: none !important; }
+            body, #main { background: white !important; color: black !important; }
+            .answer-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+            }
+            .card-header { background: #f5f5f5 !important; }
+            .conf-high { background: #d4edda !important; color: #155724 !important; }
+            .conf-med  { background: #fff3cd !important; color: #856404 !important; }
+            .conf-low  { background: #f8d7da !important; color: #721c24 !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar overlay -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div id="sidebar">
+    <div class="sidebar-header">
+        <h2>History</h2>
+        <button class="icon-btn" onclick="closeSidebar()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="2" y1="2" x2="14" y2="14"/>
+                <line x1="14" y1="2" x2="2" y2="14"/>
+            </svg>
+        </button>
+    </div>
+    <div id="history-list">
+        <p class="history-empty">No questions asked yet.</p>
+    </div>
+    <div id="papers-section">
+        <div class="papers-header" onclick="togglePapers()">
+            <div class="papers-header-left">
+                <span>Corpus</span>
+                <span class="papers-count-badge" id="papers-count"></span>
+            </div>
+            <svg class="papers-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </div>
+        <div id="papers-list">
+            <p class="history-empty">Loading…</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+    <!-- Top bar -->
+    <div id="topbar">
+        <button class="icon-btn" onclick="toggleSidebar()" title="History">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="5"  x2="17" y2="5"/>
+                <line x1="3" y1="10" x2="17" y2="10"/>
+                <line x1="3" y1="15" x2="17" y2="15"/>
+            </svg>
+        </button>
+        <h1>synappro science assistant</h1>
+        <!-- Dark mode toggle -->
+        <button class="icon-btn" id="dark-toggle" onclick="toggleDark()" title="Toggle dark mode">
+            <svg id="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <svg id="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1"     x2="12" y2="3"/>
+                <line x1="12" y1="21"    x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22"   x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1"  y1="12"    x2="3"  y2="12"/>
+                <line x1="21" y1="12"    x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78"  x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
+            </svg>
+        </button>
+        <!-- Print / PDF export -->
+        <button class="icon-btn" onclick="window.print()" title="Export as PDF">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Input -->
+    <div id="input-wrap">
+        <div class="input-card">
+            <label for="question">Ask a question grounded in our selected papers</label>
+            <textarea id="question" placeholder="e.g. Does diaphragmatic breathing reduce cortisol?"></textarea>
+            <div class="input-row">
+                <span class="hint">⌘ + Enter to submit</span>
+                <button id="ask-btn" onclick="askQuestion()">Ask</button>
+            </div>
+            <p id="loading" class="status">Searching papers and generating answer...</p>
+            <p id="error"   class="status"></p>
+        </div>
+    </div>
+
+    <!-- Answers -->
+    <div id="feed"></div>
+
+</div>
+
+<script>
+    /* ── Dark mode ── */
+    (function () {
+        if (document.documentElement.getAttribute("data-theme") === "dark") {
+            document.getElementById("icon-moon").style.display = "none";
+            document.getElementById("icon-sun").style.display  = "";
+        }
+    })();
+
+    function toggleDark() {
+        const root   = document.documentElement;
+        const isDark = root.getAttribute("data-theme") === "dark";
+        const next   = isDark ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        document.getElementById("icon-moon").style.display = isDark ? "" : "none";
+        document.getElementById("icon-sun").style.display  = isDark ? "none" : "";
+        localStorage.setItem("theme", next);
+    }
+
+    /* ── Sidebar ── */
+    function toggleSidebar() {
+        document.getElementById("sidebar").classList.toggle("open");
+        document.getElementById("sidebar-overlay").classList.toggle("open");
+    }
+
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+
+    /* ── RAG panel toggle ── */
+    function toggleRag(btn) {
+        btn.classList.toggle("open");
+        btn.nextElementSibling.classList.toggle("open");
+        const label = btn.querySelector(".rag-label");
+        label.textContent = btn.classList.contains("open")
+            ? "Hide RAG details" : "Show RAG details";
+    }
+
+    /* ── Score bar colour ── */
+    function scoreColor(score) {
+        if (score >= 0.70) return "var(--accent)";
+        if (score >= 0.50) return "var(--secondary)";
+        return "#c0c0c0";
+    }
+
+    /* ── Confidence badge ── */
+    function confidenceInfo(sources) {
+        const avg = sources.reduce((sum, s) => sum + s.score, 0) / sources.length;
+        if (avg >= 0.60) return { label: "High confidence", cls: "conf-high" };
+        if (avg >= 0.42) return { label: "Medium confidence", cls: "conf-med" };
+        return { label: "Low confidence", cls: "conf-low" };
+    }
+
+    /* ── Keyword highlight in chunk snippets ── */
+    function highlightKeywords(html, query) {
+        const stop = new Set(["what","how","why","does","do","is","are","the","a","an","in","on","of","to","and","or","for","with","that","this","it","be","can","was","were","has","have","had","by","from","as","at","its"]);
+        const words = query.toLowerCase().split(/\W+/).filter(w => w.length > 3 && !stop.has(w));
+        if (!words.length) return html;
+        const pat = new RegExp(`(${words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+        return html.replace(pat, "<mark>$1</mark>");
+    }
+
+    /* ── Duplicate-source notice ── */
+    function dupeNotice(sources) {
+        const counts = {};
+        sources.forEach(s => { counts[s.file] = (counts[s.file] || 0) + 1; });
+        const dupes = Object.entries(counts).filter(([, n]) => n > 1);
+        if (!dupes.length) return "";
+        const parts = dupes.map(([f, n]) => `${n} chunks from "${f}"`).join("; ");
+        return `<div class="dupe-notice">ℹ️ Overlapping sources: ${parts} — results may draw from the same section of a paper.</div>`;
+    }
+
+    /* ── Copy answer to clipboard ── */
+    function copyAnswer(btn) {
+        const text = btn.closest(".answer-card").querySelector(".answer-text").textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+            btn.style.opacity = "1";
+            setTimeout(() => { btn.innerHTML = orig; btn.style.opacity = ""; }, 2000);
+        });
+    }
+
+    /* ── Export answer as Markdown ── */
+    function exportMarkdown(btn) {
+        const card     = btn.closest(".answer-card");
+        const question = card.querySelector(".card-question").textContent.trim();
+        const answer   = card.querySelector(".answer-text").textContent.trim();
+        const sources  = [...card.querySelectorAll(".source-badge")].map(b => `- ${b.textContent.trim()}`).join("\n");
+        const md       = `# ${question}\n\n${answer}\n\n## Sources\n${sources}\n`;
+        const a        = document.createElement("a");
+        a.href         = URL.createObjectURL(new Blob([md], { type: "text/markdown" }));
+        a.download     = "synappro-answer.md";
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    /* ── Build answer card ── */
+    function buildCard(question, data, cardId) {
+        const card = document.createElement("div");
+        card.className = "answer-card";
+        card.id = cardId;
+
+        const conf = confidenceInfo(data.sources);
+
+        const lowConfBanner = data.low_confidence
+            ? `<div class="low-conf-banner">⚠️ Low retrieval confidence — the papers may not cover this topic well. Treat this answer with extra caution.</div>`
+            : "";
+
+        const dupe = dupeNotice(data.sources);
+
+        const badges = data.sources
+            .map(s => `<span class="source-badge">${s.file} · p.${s.page}</span>`)
+            .join("");
+
+        const chunks = data.sources.map((s, i) => {
+            const pct     = Math.round(s.score * 100);
+            const col     = scoreColor(s.score);
+            const escaped = s.snippet
+                ? s.snippet.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                : "";
+            const snippet = highlightKeywords(escaped, question);
+            return `
+            <div class="chunk-row">
+                <div class="chunk-meta">
+                    <div class="chunk-rank">${i + 1}</div>
+                    <div class="chunk-source">${s.file} · p.${s.page}</div>
+                    <div class="score-pill">Score: ${s.score.toFixed(3)}</div>
+                </div>
+                <div class="score-bar-track">
+                    <div class="score-bar-fill" style="width:${pct}%; background:${col};"></div>
+                </div>
+                <div class="chunk-snippet">${snippet}…</div>
+            </div>`;
+        }).join("");
+
+        const statsHtml = (data.latency_ms !== undefined)
+            ? `<div class="stats-bar">
+                   <span>Latency: ${data.latency_ms} ms</span>
+                   <span>Tokens: ${data.total_tokens.toLocaleString()} total (${data.prompt_tokens.toLocaleString()} prompt · ${data.completion_tokens.toLocaleString()} completion)</span>
+               </div>`
+            : "";
+
+        card.innerHTML = `
+            <div class="card-header">
+                <div class="card-question">${question}</div>
+                <span class="conf-badge ${conf.cls}">${conf.label}</span>
+                <div class="conf-info">
+                    <button class="conf-info-btn" tabindex="-1">i</button>
+                    <div class="conf-tooltip">
+                        <p class="conf-tooltip-intro">How well the retrieved papers matched your question, measured by average cosine similarity score.</p>
+                        <div class="conf-tooltip-levels">
+                            <div class="conf-tooltip-row">
+                                <span class="tl-badge conf-high">High</span>
+                                <span class="tl-score">avg ≥ 0.60</span>
+                                <span class="tl-desc">Papers directly address this topic</span>
+                            </div>
+                            <div class="conf-tooltip-row">
+                                <span class="tl-badge conf-med">Medium</span>
+                                <span class="tl-score">avg ≥ 0.42</span>
+                                <span class="tl-desc">Some relevant content found</span>
+                            </div>
+                            <div class="conf-tooltip-row">
+                                <span class="tl-badge conf-low">Low</span>
+                                <span class="tl-score">avg &lt; 0.42</span>
+                                <span class="tl-desc">Papers may not cover this topic</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="card-icon-btn" onclick="copyAnswer(this)" title="Copy answer">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="2" width="6" height="4" rx="1"/>
+                        <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/>
+                    </svg>
+                </button>
+                <button class="card-icon-btn" onclick="exportMarkdown(this)" title="Download as Markdown">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="card-body">
+                ${lowConfBanner}
+                <p class="answer-text">${data.answer}</p>
+                <div class="sources-row">${badges}</div>
+                <button class="rag-toggle" onclick="toggleRag(this)">
+                    <span class="plus-icon">+</span>
+                    <span class="rag-label">Show RAG details</span>
+                </button>
+                <div class="rag-panel">
+                    ${dupe}
+                    <p class="rag-panel-title">Retrieved chunks · top ${data.sources.length} by cosine similarity</p>
+                    ${chunks}
+                </div>
+                ${statsHtml}
+            </div>`;
+
+        return card;
+    }
+
+    /* ── Add to sidebar history ── */
+    function addToHistory(question, cardId) {
+        const list  = document.getElementById("history-list");
+        const empty = list.querySelector(".history-empty");
+        if (empty) empty.remove();
+
+        const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const btn  = document.createElement("button");
+        btn.className = "history-item";
+        btn.innerHTML = `<div class="h-q">${question}</div><div class="h-time">${time}</div>`;
+        btn.onclick   = () => {
+            closeSidebar();
+            const target = document.getElementById(cardId);
+            if (target) {
+                const topbar = document.getElementById("topbar");
+                const offset = topbar ? topbar.offsetHeight + 12 : 12;
+                const y = target.getBoundingClientRect().top + window.scrollY - offset;
+                window.scrollTo({ top: y, behavior: "smooth" });
+            }
+        };
+        list.prepend(btn);
+    }
+
+    /* ── Ask ── */
+    async function askQuestion() {
+        const question = document.getElementById("question").value.trim();
+        if (!question) return;
+
+        document.getElementById("error").style.display   = "none";
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("ask-btn").disabled      = true;
+
+        try {
+            const res = await fetch("/ask", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify({ question }),
+            });
+
+            let data;
+            try { data = await res.json(); }
+            catch { throw new Error(`Server error (${res.status}). Check the terminal.`); }
+            if (!res.ok) throw new Error(data.error || "Something went wrong.");
+
+            const cardId = `card-${Date.now()}`;
+            const card   = buildCard(question, data, cardId);
+
+            const feed = document.getElementById("feed");
+            feed.prepend(card);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+
+            addToHistory(question, cardId);
+            document.getElementById("question").value = "";
+
+        } catch (err) {
+            document.getElementById("error").textContent   = err.message;
+            document.getElementById("error").style.display = "block";
+        } finally {
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("ask-btn").disabled      = false;
+        }
+    }
+
+    document.getElementById("question").addEventListener("keydown", e => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") askQuestion();
+    });
+
+    /* ── Papers section toggle ── */
+    function togglePapers() {
+        document.getElementById("papers-section").classList.toggle("open");
+    }
+
+    /* ── Load corpus papers ── */
+    (async function loadPapers() {
+        try {
+            const { papers } = await fetch("/papers").then(r => r.json());
+            document.getElementById("papers-count").textContent = `${papers.length} papers`;
+            document.getElementById("papers-list").innerHTML = papers.map(p => {
+                const displayName = p.file.replace(/\.pdf$/i, "");
+                const url = "/document/" + encodeURIComponent(p.file);
+                return `
+                <a class="paper-item" href="${url}" target="_blank" title="${p.file}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:0.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <span class="paper-name">${displayName}</span>
+                    <span class="paper-chunks">${p.chunks} chunks</span>
+                </a>`;
+            }).join("");
+        } catch {
+            document.getElementById("papers-list").innerHTML =
+                `<p class="history-empty">Could not load papers.</p>`;
+        }
+    })();
+</script>
+
+</body>
+</html>
